@@ -18,10 +18,14 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "tim.h"
+#include "usart.h"
+#include "gpio.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-//FONCTIONNE STP STM DE MERDE
+#include <stdio.h>
+
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -40,16 +44,21 @@
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
-UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
+
+
+//Capteurs US
+
+//Distance capteur US1
+int g_int_distCapteurUs1=0;
+
+
 
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
-static void MX_GPIO_Init(void);
-static void MX_USART2_UART_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -89,6 +98,7 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_USART2_UART_Init();
+  MX_TIM2_Init();
   /* USER CODE BEGIN 2 */
 
   /* USER CODE END 2 */
@@ -97,6 +107,16 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+	  //Mesure distance
+	  TrigCapteurUs1();
+	  HAL_Delay(500);
+
+	  printf("%i \n", g_int_distCapteurUs1);
+	  //printf("marche stp \n");
+
+	  HAL_Delay(1000);
+
+
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -152,78 +172,47 @@ void SystemClock_Config(void)
   }
 }
 
-/**
-  * @brief USART2 Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_USART2_UART_Init(void)
-{
-
-  /* USER CODE BEGIN USART2_Init 0 */
-
-  /* USER CODE END USART2_Init 0 */
-
-  /* USER CODE BEGIN USART2_Init 1 */
-
-  /* USER CODE END USART2_Init 1 */
-  huart2.Instance = USART2;
-  huart2.Init.BaudRate = 115200;
-  huart2.Init.WordLength = UART_WORDLENGTH_8B;
-  huart2.Init.StopBits = UART_STOPBITS_1;
-  huart2.Init.Parity = UART_PARITY_NONE;
-  huart2.Init.Mode = UART_MODE_TX_RX;
-  huart2.Init.HwFlowCtl = UART_HWCONTROL_NONE;
-  huart2.Init.OverSampling = UART_OVERSAMPLING_16;
-  huart2.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
-  huart2.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
-  if (HAL_UART_Init(&huart2) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN USART2_Init 2 */
-
-  /* USER CODE END USART2_Init 2 */
-
-}
-
-/**
-  * @brief GPIO Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_GPIO_Init(void)
-{
-  GPIO_InitTypeDef GPIO_InitStruct = {0};
-/* USER CODE BEGIN MX_GPIO_Init_1 */
-/* USER CODE END MX_GPIO_Init_1 */
-
-  /* GPIO Ports Clock Enable */
-  __HAL_RCC_GPIOC_CLK_ENABLE();
-  __HAL_RCC_GPIOH_CLK_ENABLE();
-  __HAL_RCC_GPIOA_CLK_ENABLE();
-
-  /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_RESET);
-
-  /*Configure GPIO pin : B1_Pin */
-  GPIO_InitStruct.Pin = B1_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(B1_GPIO_Port, &GPIO_InitStruct);
-
-  /*Configure GPIO pin : LD2_Pin */
-  GPIO_InitStruct.Pin = LD2_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(LD2_GPIO_Port, &GPIO_InitStruct);
-
-/* USER CODE BEGIN MX_GPIO_Init_2 */
-/* USER CODE END MX_GPIO_Init_2 */
-}
-
 /* USER CODE BEGIN 4 */
+//FONCTIONS
+
+int __io_putchar(int ch){
+	HAL_UART_Transmit(&huart2, (uint8_t*)&ch, 1, 0xFFFF);
+	return ch;
+}
+
+void TrigCapteurUs1(void){
+	//Sortie ETat Haut
+	HAL_GPIO_WritePin(CapteurUs1Trig_GPIO_Port, CapteurUs1Trig_Pin, GPIO_PIN_SET);
+	//10us
+	HAL_Delay(0.01);
+	//Sortie Etat Bas
+	HAL_GPIO_WritePin(CapteurUs1Trig_GPIO_Port, CapteurUs1Trig_Pin, GPIO_PIN_RESET);
+}
+
+//Callback lors d'interruptions sur EXTI 4:15
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
+    // Vérifie quel pin a déclenché l'interruption
+    if (GPIO_Pin == CapteurUs1Echo_Pin) {
+
+    	//Verif rising
+        if (HAL_GPIO_ReadPin(CapteurUs1Trig_GPIO_Port, CapteurUs1Echo_Pin) == GPIO_PIN_SET){
+        	//Lancer le timer
+        	HAL_TIM_Base_Start(&htim2);
+        }
+
+        //Verif falling
+        else if (HAL_GPIO_ReadPin(CapteurUs1Trig_GPIO_Port, CapteurUs1Echo_Pin) == GPIO_PIN_RESET){
+        	//Arrete le timer et transmets la valeur
+        	HAL_TIM_Base_Stop(&htim2);
+        	g_int_distCapteurUs1 = TIM2->CNT;
+        	TIM2->CNT = 0;
+
+        }
+    }
+}
+
+
+
 
 /* USER CODE END 4 */
 
