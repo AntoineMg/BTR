@@ -37,6 +37,12 @@ extern "C" {
 /* Exported types ------------------------------------------------------------*/
 /* USER CODE BEGIN ET */
 
+typedef enum{L_SENSOR, R_SENSOR}TNumSensor;
+typedef enum{L_MOTOR, R_MOTOR}TNumMotor;
+typedef enum{NEUTRAL, FORWARD, BACKWARD}TDirection;
+
+
+
 /* USER CODE END ET */
 
 /* Exported constants --------------------------------------------------------*/

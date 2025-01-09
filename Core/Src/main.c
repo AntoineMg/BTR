@@ -222,39 +222,71 @@ void GenerePWM(int x_int_alpha){
 	__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, l_int_tempsHaut);
 }
 
+void NavigationUpdate(void){
+
+}
+
 void Motors_Move(int x_int_angle, int x_int_speed){
 	// Limiter l'angle entre -90 et 90 degrés
 	    if (x_int_angle > 90){
 	    	x_int_angle = 90;
 	    }
 
-	    if (x_int_angle < -90){
+	    else if (x_int_angle < -90){
 	    	x_int_angle = -90;
 	    }
 
 	    // Calcul des vitesses
 	    l_int_Lspeed = MAX_SPEED * (1 - (float)x_int_angle / 90.0f);
 	    l_int_Rspeed = MAX_SPEED * (1 + (float)x_int_angle / 90.0f);
+
+	    //Affectation des vitesses aux moteurs
+	    Motors_SetSpeed(L_MOTOR, l_int_Lspeed);
+	    Motors_SetSpeed(R_MOTOR, l_int_Rspeed);
+
 }
 
 void Motors_SetDirection(TDirection x_direction){
 	//Gerer les ports CTRL1 et CTRL2 des moteurs
 	//Cest par ici qu'on met la securite du delai de changement de dircetion avec
-	if(x_direcion == FORWARD){
+	if(x_direction == NEUTRAL){
+		HAL_GPIO_WritePin(GPIOC, Mot1_Ctrl1_Pin, GPIO_PIN_RESET);
+		HAL_GPIO_WritePin(GPIOC, Mot1_Ctrl2_Pin, GPIO_PIN_RESET);
+
+		HAL_GPIO_WritePin(GPIOC, Mot2_Ctrl1_Pin, GPIO_PIN_RESET);
+		HAL_GPIO_WritePin(GPIOC, Mot2_Ctrl2_Pin, GPIO_PIN_RESET);
+	}
+
+	else if(x_direcion == FORWARD){
+		HAL_GPIO_WritePin(GPIOC, Mot1_Ctrl1_Pin, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(GPIOC, Mot1_Ctrl2_Pin, GPIO_PIN_RESET);
+
+		HAL_GPIO_WritePin(GPIOC, Mot2_Ctrl1_Pin, GPIO_PIN_RESET);
+		HAL_GPIO_WritePin(GPIOC, Mot2_Ctrl2_Pin, GPIO_PIN_SET);
 
 	}
 	else if(x_direction == BACKWARD){
+		HAL_GPIO_WritePin(GPIOC, Mot1_Ctrl1_Pin, GPIO_PIN_RESET);
+		HAL_GPIO_WritePin(GPIOC, Mot1_Ctrl2_Pin, GPIO_PIN_SET);
+
+		HAL_GPIO_WritePin(GPIOC, Mot2_Ctrl1_Pin, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(GPIOC, Mot2_Ctrl2_Pin, GPIO_PIN_RESET);
 
 	}
 	else{
-		//Mode parking => tout a 0
+		//Mode parking => tout a 0 comme le neutre, mis 2 fois pour avoir une securite de 100%
+		HAL_GPIO_WritePin(GPIOC, Mot1_Ctrl1_Pin, GPIO_PIN_RESET);
+		HAL_GPIO_WritePin(GPIOC, Mot1_Ctrl2_Pin, GPIO_PIN_RESET);
+
+		HAL_GPIO_WritePin(GPIOC, Mot2_Ctrl1_Pin, GPIO_PIN_RESET);
+		HAL_GPIO_WritePin(GPIOC, Mot2_Ctrl2_Pin, GPIO_PIN_RESET);
 	}
 }
 
 void Motors_Stop(void){
 	//Arrete tout les moteurs
-	Motors_SetSpeed(MOT1,0);
-	Motors_SetSpeed(MOT1,0);
+	Motors_SetSpeed(L_MOTOR,0);
+	Motors_SetSpeed(R_MOTOR,0);
 }
 
 void Motors_SetSpeed(TNumMotor x_numMotor, uint8_t x_int_speed){
