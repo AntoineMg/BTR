@@ -99,22 +99,27 @@ int main(void)
   MX_GPIO_Init();
   MX_USART2_UART_Init();
   MX_TIM2_Init();
+  MX_TIM3_Init();
   /* USER CODE BEGIN 2 */
 
+  HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+  GenerePWM(50);
   while (1)
   {
-	  //Mesure distance
-	  TrigCapteurUs1();
-	  HAL_Delay(500);
 
-	  printf("%i \n", g_int_distCapteurUs1);
+
+	  //Mesure distance
+	  //TrigCapteurUs1();
+	  //HAL_Delay(500);
+
+	  //printf("%i \n", g_int_distCapteurUs1);
 	  //printf("marche stp \n");
 
-	  HAL_Delay(1000);
+	  //HAL_Delay(1000);
 
 
     /* USER CODE END WHILE */
@@ -141,10 +146,9 @@ void SystemClock_Config(void)
   /** Initializes the RCC Oscillators according to the specified parameters
   * in the RCC_OscInitTypeDef structure.
   */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_MSI;
-  RCC_OscInitStruct.MSIState = RCC_MSI_ON;
-  RCC_OscInitStruct.MSICalibrationValue = 0;
-  RCC_OscInitStruct.MSIClockRange = RCC_MSIRANGE_5;
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
+  RCC_OscInitStruct.HSIState = RCC_HSI_ON;
+  RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_NONE;
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
   {
@@ -155,9 +159,9 @@ void SystemClock_Config(void)
   */
   RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
                               |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
-  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_MSI;
+  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_HSI;
   RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
-  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
+  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV16;
   RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
 
   if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_0) != HAL_OK)
@@ -209,6 +213,58 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 
         }
     }
+}
+
+//Genere le signal PWM a 25kHz pour le moteur via TIM3
+void GenerePWM(int x_int_alpha){
+	//Conversion de alpha en temps d'etat haut
+	int l_int_tempsHaut = (x_int_alpha/100)*40;	//le 40 est en us car periode du timer (tick) est ici de 1us
+	__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, l_int_tempsHaut);
+}
+
+void Motors_Move(int x_int_angle, int x_int_speed){
+	// Limiter l'angle entre -90 et 90 degrés
+	    if (x_int_angle > 90){
+	    	x_int_angle = 90;
+	    }
+
+	    if (x_int_angle < -90){
+	    	x_int_angle = -90;
+	    }
+
+	    // Calcul des vitesses
+	    l_int_Lspeed = MAX_SPEED * (1 - (float)x_int_angle / 90.0f);
+	    l_int_Rspeed = MAX_SPEED * (1 + (float)x_int_angle / 90.0f);
+}
+
+void Motors_SetDirection(TDirection x_direction){
+	//Gerer les ports CTRL1 et CTRL2 des moteurs
+	//Cest par ici qu'on met la securite du delai de changement de dircetion avec
+	if(x_direcion == FORWARD){
+
+	}
+	else if(x_direction == BACKWARD){
+
+	}
+	else{
+		//Mode parking => tout a 0
+	}
+}
+
+void Motors_Stop(void){
+	//Arrete tout les moteurs
+	Motors_SetSpeed(MOT1,0);
+	Motors_SetSpeed(MOT1,0);
+}
+
+void Motors_SetSpeed(TNumMotor x_numMotor, uint8_t x_int_speed){
+	//Controle chaque moteur individuellement
+	if(x_numMotor==L_MOTOR){
+			__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, x_speed);
+		}
+	else if(x_numMotor==R_MOTOR){
+			__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, x_speed);
+		}
 }
 
 

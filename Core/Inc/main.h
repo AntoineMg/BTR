@@ -75,6 +75,14 @@ void Error_Handler(void);
 #define CapteurUs2Echo_GPIO_Port GPIOB
 #define CapteurUs2Trig_Pin GPIO_PIN_12
 #define CapteurUs2Trig_GPIO_Port GPIOB
+#define Mot1_Ctrl1_Pin GPIO_PIN_6
+#define Mot1_Ctrl1_GPIO_Port GPIOC
+#define Mot1_Ctrl2_Pin GPIO_PIN_7
+#define Mot1_Ctrl2_GPIO_Port GPIOC
+#define Mot2_Ctrl1_Pin GPIO_PIN_8
+#define Mot2_Ctrl1_GPIO_Port GPIOC
+#define Mot2_Ctrl2_Pin GPIO_PIN_9
+#define Mot2_Ctrl2_GPIO_Port GPIOC
 #define cd2_Pin GPIO_PIN_11
 #define cd2_GPIO_Port GPIOA
 #define cd2_EXTI_IRQn EXTI4_15_IRQn
