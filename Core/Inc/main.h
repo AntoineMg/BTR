@@ -59,7 +59,7 @@ typedef enum{NEUTRAL, FORWARD, BACKWARD}TDirection;
 void Error_Handler(void);
 
 /* USER CODE BEGIN EFP */
-
+void TrigCapteurUs1(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
@@ -77,10 +77,14 @@ void Error_Handler(void);
 #define CapteurUs1Echo_EXTI_IRQn EXTI4_15_IRQn
 #define CapteurUs1Trig_Pin GPIO_PIN_6
 #define CapteurUs1Trig_GPIO_Port GPIOA
-#define CapteurUs2Echo_Pin GPIO_PIN_11
-#define CapteurUs2Echo_GPIO_Port GPIOB
+#define Mot1_Enable_Pin GPIO_PIN_0
+#define Mot1_Enable_GPIO_Port GPIOB
+#define Mot2_Enable_Pin GPIO_PIN_1
+#define Mot2_Enable_GPIO_Port GPIOB
 #define CapteurUs2Trig_Pin GPIO_PIN_12
 #define CapteurUs2Trig_GPIO_Port GPIOB
+#define CapteurUs2Echo_Pin GPIO_PIN_13
+#define CapteurUs2Echo_GPIO_Port GPIOB
 #define Mot1_Ctrl1_Pin GPIO_PIN_6
 #define Mot1_Ctrl1_GPIO_Port GPIOC
 #define Mot1_Ctrl2_Pin GPIO_PIN_7

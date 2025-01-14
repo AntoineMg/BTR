@@ -51,7 +51,7 @@
 //Capteurs US
 
 //Distance capteur US1
-int g_int_distCapteurUs1=0;
+uint8_t g_int_distCapteurUs1=33;
 
 
 
@@ -107,14 +107,21 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  GenerePWM(50);
+  //GenerePWM(50);
   while (1)
   {
 
 
-	  //Mesure distance
-	  //TrigCapteurUs1();
-	  //HAL_Delay(500);
+	  TrigCapteurUs1();
+
+	  //uint8_t buffer[15];
+	  //snprintf((char *)buffer, sizeof(buffer), "%d", g_int_distCapteurUs1);
+
+	  //uint8_t buffer[15] = g_int_distCapteurUs1;
+	  HAL_UART_Transmit(&huart2, &g_int_distCapteurUs1, 1, HAL_MAX_DELAY);
+	  HAL_Delay(1500);
+
+
 
 	  //printf("%i \n", g_int_distCapteurUs1);
 	  //printf("marche stp \n");
@@ -184,6 +191,7 @@ int __io_putchar(int ch){
 	return ch;
 }
 
+//a refaire completement bancal
 void TrigCapteurUs1(void){
 	//Sortie ETat Haut
 	HAL_GPIO_WritePin(CapteurUs1Trig_GPIO_Port, CapteurUs1Trig_Pin, GPIO_PIN_SET);
@@ -199,13 +207,13 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
     if (GPIO_Pin == CapteurUs1Echo_Pin) {
 
     	//Verif rising
-        if (HAL_GPIO_ReadPin(CapteurUs1Trig_GPIO_Port, CapteurUs1Echo_Pin) == GPIO_PIN_SET){
+        if (HAL_GPIO_ReadPin(CapteurUs1Echo_GPIO_Port, CapteurUs1Echo_Pin) == GPIO_PIN_SET){
         	//Lancer le timer
         	HAL_TIM_Base_Start(&htim2);
         }
 
         //Verif falling
-        else if (HAL_GPIO_ReadPin(CapteurUs1Trig_GPIO_Port, CapteurUs1Echo_Pin) == GPIO_PIN_RESET){
+        else if (HAL_GPIO_ReadPin(CapteurUs1Echo_GPIO_Port, CapteurUs1Echo_Pin) == GPIO_PIN_RESET){
         	//Arrete le timer et transmets la valeur
         	HAL_TIM_Base_Stop(&htim2);
         	g_int_distCapteurUs1 = TIM2->CNT;
@@ -215,13 +223,24 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
     }
 }
 
-//Genere le signal PWM a 25kHz pour le moteur via TIM3
-void GenerePWM(int x_int_alpha){
-	//Conversion de alpha en temps d'etat haut
-	int l_int_tempsHaut = (x_int_alpha/100)*40;	//le 40 est en us car periode du timer (tick) est ici de 1us
-	__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, l_int_tempsHaut);
-}
+//mesures
+/*
+uint8_t Sensor_Read(TNumSensor x_numSensor){
+	//Envoi pwm trig
+	TrigCapteurUs1();
+	return(g_int_distCapteurUs1);
 
+}
+*/
+//Genere le signal PWM a 25kHz pour le moteur via TIM3
+//
+//void GenerePWM(int x_int_alpha){
+//	//Conversion de alpha en temps d'etat haut
+//	int l_int_tempsHaut = (x_int_alpha/100)*40;	//le 40 est en us car periode du timer (tick) est ici de 1us
+//	__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, l_int_tempsHaut);
+//}
+
+/*
 void NavigationUpdate(void){
 
 }
@@ -300,6 +319,7 @@ void Motors_SetSpeed(TNumMotor x_numMotor, uint8_t x_int_speed){
 }
 
 
+*/
 
 
 /* USER CODE END 4 */
