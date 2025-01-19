@@ -60,6 +60,12 @@ void Error_Handler(void);
 
 /* USER CODE BEGIN EFP */
 void TrigCapteurUs1(void);
+void Sensor_Read(TNumSensor);
+void Motors_Move(int, int);
+void Motors_SetDirection(TDirection);
+void Motors_Stop(void);
+void Motors_SetSpeed(TNumMotor, uint8_t);
+
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/

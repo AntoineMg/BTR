@@ -35,6 +35,7 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+#define MAX_SPEED 1
 
 /* USER CODE END PD */
 
@@ -51,7 +52,8 @@
 //Capteurs US
 
 //Distance capteur US1
-uint8_t g_int_distCapteurUs1=33;
+uint8_t g_int_distCapteurUs1=97;
+uint8_t g_int_distRetenueUs1=104;
 
 
 
@@ -102,7 +104,9 @@ int main(void)
   MX_TIM3_Init();
   /* USER CODE BEGIN 2 */
 
-  HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
+  HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_3);
+  HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_4);
+  Motors_SetDirection(NEUTRAL);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -110,23 +114,57 @@ int main(void)
   //GenerePWM(50);
   while (1)
   {
+	  Motors_SetDirection(BACKWARD);
+
+	  //__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_3, 12345);
+
+	  //Motors_Move(15,30);
+
+	  Motors_SetSpeed(L_MOTOR, 150);
+	  Motors_SetSpeed(R_MOTOR, 150);
+
+	  //HAL_Delay(5000);
+	  //Motors_Stop();
+	  //HAL_Delay(1500);
+
+	  //Motors_SetDirection(NEUTRAL);
+
+	  //HAL_Delay(1500);
 
 
+
+
+
+
+	  //Sensor_Read(L_SENSOR);
+	  //Envoi pwm trig
+#ifdef TestUS
 	  TrigCapteurUs1();
+
+	  HAL_Delay(500);
+
+	  //filtrage
+	  if((g_int_distCapteurUs1 <= 220) && (g_int_distCapteurUs1 >= 2)){
+		  g_int_distRetenueUs1 = g_int_distCapteurUs1;
+	  }
+
+
+
+
 
 	  //uint8_t buffer[15];
 	  //snprintf((char *)buffer, sizeof(buffer), "%d", g_int_distCapteurUs1);
 
 	  //uint8_t buffer[15] = g_int_distCapteurUs1;
-	  HAL_UART_Transmit(&huart2, &g_int_distCapteurUs1, 1, HAL_MAX_DELAY);
-	  HAL_Delay(1500);
+
+	  HAL_UART_Transmit(&huart2, &g_int_distRetenueUs1, 1, HAL_MAX_DELAY);
+	  //printf("\n Erreur de lecture %i \n", g_int_distCapteurUs1);
 
 
-
-	  //printf("%i \n", g_int_distCapteurUs1);
 	  //printf("marche stp \n");
 
 	  //HAL_Delay(1000);
+#endif
 
 
     /* USER CODE END WHILE */
@@ -168,7 +206,7 @@ void SystemClock_Config(void)
                               |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
   RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_HSI;
   RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
-  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV16;
+  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
   RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
 
   if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_0) != HAL_OK)
@@ -215,6 +253,7 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
         //Verif falling
         else if (HAL_GPIO_ReadPin(CapteurUs1Echo_GPIO_Port, CapteurUs1Echo_Pin) == GPIO_PIN_RESET){
         	//Arrete le timer et transmets la valeur
+        	//ici la valeur est directement en cm grace au prescaler de tim2 qui est a 941
         	HAL_TIM_Base_Stop(&htim2);
         	g_int_distCapteurUs1 = TIM2->CNT;
         	TIM2->CNT = 0;
@@ -224,14 +263,22 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 }
 
 //mesures
-/*
-uint8_t Sensor_Read(TNumSensor x_numSensor){
+
+void Sensor_Read(TNumSensor x_numSensor){
 	//Envoi pwm trig
 	TrigCapteurUs1();
-	return(g_int_distCapteurUs1);
+
+	//filtrage
+	if((g_int_distCapteurUs1 >= 220) || (g_int_distCapteurUs1 <= 2)){
+		//rien
+	}
+	else {
+		g_int_distRetenueUs1 = g_int_distCapteurUs1;
+	}
+
 
 }
-*/
+
 //Genere le signal PWM a 25kHz pour le moteur via TIM3
 //
 //void GenerePWM(int x_int_alpha){
@@ -240,13 +287,16 @@ uint8_t Sensor_Read(TNumSensor x_numSensor){
 //	__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, l_int_tempsHaut);
 //}
 
-/*
+
 void NavigationUpdate(void){
 
 }
 
 void Motors_Move(int x_int_angle, int x_int_speed){
 	// Limiter l'angle entre -90 et 90 degrés
+		int l_int_Lspeed;
+		int l_int_Rspeed;
+
 	    if (x_int_angle > 90){
 	    	x_int_angle = 90;
 	    }
@@ -256,8 +306,8 @@ void Motors_Move(int x_int_angle, int x_int_speed){
 	    }
 
 	    // Calcul des vitesses
-	    l_int_Lspeed = MAX_SPEED * (1 - (float)x_int_angle / 90.0f);
-	    l_int_Rspeed = MAX_SPEED * (1 + (float)x_int_angle / 90.0f);
+	    l_int_Lspeed = x_int_speed * (1 - (float)x_int_angle / 90.0f);
+	    l_int_Rspeed = x_int_speed * (1 + (float)x_int_angle / 90.0f);
 
 	    //Affectation des vitesses aux moteurs
 	    Motors_SetSpeed(L_MOTOR, l_int_Lspeed);
@@ -276,7 +326,7 @@ void Motors_SetDirection(TDirection x_direction){
 		HAL_GPIO_WritePin(GPIOC, Mot2_Ctrl2_Pin, GPIO_PIN_RESET);
 	}
 
-	else if(x_direcion == FORWARD){
+	else if(x_direction == FORWARD){
 		HAL_GPIO_WritePin(GPIOC, Mot1_Ctrl1_Pin, GPIO_PIN_SET);
 		HAL_GPIO_WritePin(GPIOC, Mot1_Ctrl2_Pin, GPIO_PIN_RESET);
 
@@ -311,15 +361,15 @@ void Motors_Stop(void){
 void Motors_SetSpeed(TNumMotor x_numMotor, uint8_t x_int_speed){
 	//Controle chaque moteur individuellement
 	if(x_numMotor==L_MOTOR){
-			__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, x_speed);
+			__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_3, x_int_speed);
 		}
 	else if(x_numMotor==R_MOTOR){
-			__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, x_speed);
+			__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_4, x_int_speed);
 		}
 }
 
 
-*/
+
 
 
 /* USER CODE END 4 */
