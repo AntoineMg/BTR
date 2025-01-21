@@ -10,6 +10,6 @@
 ../Core/Src/main.c:364:6:Motors_SetDirection	4
 ../Core/Src/main.c:401:6:Motors_Stop	1
 ../Core/Src/main.c:407:6:Motors_SetSpeed	3
-../Core/Src/main.c:420:6:Encoders_GetData	1
-../Core/Src/main.c:443:6:Print_Speed	1
-../Core/Src/main.c:457:6:Error_Handler	1
+../Core/Src/main.c:423:6:Encoders_GetData	1
+../Core/Src/main.c:446:6:Print_Speed	1
+../Core/Src/main.c:462:6:Error_Handler	1

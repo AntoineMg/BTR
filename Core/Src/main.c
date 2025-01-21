@@ -138,7 +138,7 @@ int main(void)
 	  Motors_SetSpeed(R_MOTOR, g_int_RSpeed);
 
 	  //Attente moteurs
-	  HAL_Delay(1000);
+	  HAL_Delay(4000);
 	  Print_Speed();
 	  HAL_Delay(1000);
 
@@ -406,7 +406,10 @@ void Motors_Stop(void){
 
 void Motors_SetSpeed(TNumMotor x_numMotor, uint8_t x_int_speed){
 	//recoit une vitesse entre 0 et 255, puis la transforme en pourcent par rapport au max
-	x_int_speed = (x_int_speed * TIM3->ARR)/ 255;
+	//x_int_speed = (x_int_speed * TIM3->ARR)/ 255;
+	x_int_speed = (x_int_speed+138)/ 3;
+
+
 
 	//Controle chaque moteur individuellement
 	if(x_numMotor==L_MOTOR){
@@ -442,7 +445,9 @@ void Encoders_GetData(void){
 
 void Print_Speed(void){
 	// Afficher la distance parcourue (ou vitesse)
-	printf("\n\r Vitesse : %i RPM", g_int_rpm);
+	//printf("\n\r Vitesse : %i RPM", g_int_rpm);
+	//print("%i", g_int_rpm);
+	HAL_UART_Transmit(&huart2, &g_int_rpm, 1, HAL_MAX_DELAY);
 }
 
 
