@@ -54,6 +54,8 @@
 //Distance capteur US1
 uint8_t g_int_distCapteurUs1=97;
 uint8_t g_int_distRetenueUs1=104;
+int32_t g_int_mot1PositionActuelle;
+int32_t g_int_mot1PositionPrecedente;
 
 
 
@@ -102,10 +104,13 @@ int main(void)
   MX_USART2_UART_Init();
   MX_TIM2_Init();
   MX_TIM3_Init();
+  MX_TIM6_Init();
   /* USER CODE BEGIN 2 */
 
   HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_3);
   HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_4);
+  HAL_TIM_Encoder_Start(&htim2, TIM_CHANNEL_ALL);
+
   Motors_SetDirection(NEUTRAL);
   /* USER CODE END 2 */
 
@@ -123,7 +128,10 @@ int main(void)
 	  Motors_SetSpeed(L_MOTOR, 150);
 	  Motors_SetSpeed(R_MOTOR, 150);
 
-	  //HAL_Delay(5000);
+
+	  Encoders_GetData();
+	  HAL_Delay(1000);
+
 	  //Motors_Stop();
 	  //HAL_Delay(1500);
 
@@ -247,16 +255,16 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
     	//Verif rising
         if (HAL_GPIO_ReadPin(CapteurUs1Echo_GPIO_Port, CapteurUs1Echo_Pin) == GPIO_PIN_SET){
         	//Lancer le timer
-        	HAL_TIM_Base_Start(&htim2);
+        	HAL_TIM_Base_Start(&htim6);
         }
 
         //Verif falling
         else if (HAL_GPIO_ReadPin(CapteurUs1Echo_GPIO_Port, CapteurUs1Echo_Pin) == GPIO_PIN_RESET){
         	//Arrete le timer et transmets la valeur
         	//ici la valeur est directement en cm grace au prescaler de tim2 qui est a 941
-        	HAL_TIM_Base_Stop(&htim2);
-        	g_int_distCapteurUs1 = TIM2->CNT;
-        	TIM2->CNT = 0;
+        	HAL_TIM_Base_Stop(&htim6);
+        	g_int_distCapteurUs1 = TIM6->CNT;
+        	TIM6->CNT = 0;
 
         }
     }
@@ -327,19 +335,19 @@ void Motors_SetDirection(TDirection x_direction){
 	}
 
 	else if(x_direction == FORWARD){
-		HAL_GPIO_WritePin(GPIOC, Mot1_Ctrl1_Pin, GPIO_PIN_SET);
-		HAL_GPIO_WritePin(GPIOC, Mot1_Ctrl2_Pin, GPIO_PIN_RESET);
-
-		HAL_GPIO_WritePin(GPIOC, Mot2_Ctrl1_Pin, GPIO_PIN_RESET);
-		HAL_GPIO_WritePin(GPIOC, Mot2_Ctrl2_Pin, GPIO_PIN_SET);
-
-	}
-	else if(x_direction == BACKWARD){
 		HAL_GPIO_WritePin(GPIOC, Mot1_Ctrl1_Pin, GPIO_PIN_RESET);
 		HAL_GPIO_WritePin(GPIOC, Mot1_Ctrl2_Pin, GPIO_PIN_SET);
 
 		HAL_GPIO_WritePin(GPIOC, Mot2_Ctrl1_Pin, GPIO_PIN_SET);
 		HAL_GPIO_WritePin(GPIOC, Mot2_Ctrl2_Pin, GPIO_PIN_RESET);
+
+	}
+	else if(x_direction == BACKWARD){
+		HAL_GPIO_WritePin(GPIOC, Mot1_Ctrl1_Pin, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(GPIOC, Mot1_Ctrl2_Pin, GPIO_PIN_RESET);
+
+		HAL_GPIO_WritePin(GPIOC, Mot2_Ctrl1_Pin, GPIO_PIN_RESET);
+		HAL_GPIO_WritePin(GPIOC, Mot2_Ctrl2_Pin, GPIO_PIN_SET);
 
 	}
 	else{
@@ -368,6 +376,29 @@ void Motors_SetSpeed(TNumMotor x_numMotor, uint8_t x_int_speed){
 		}
 }
 
+void Encoders_GetData(void){
+	int32_t l_int_distanceParcourue = 0;
+	int l_int_rpm;
+
+	// Lire la position actuelle
+	int32_t positionActuelle = __HAL_TIM_GET_COUNTER(&htim2);
+
+	// Calculer la distance parcourue depuis la dernière lecture
+	l_int_distanceParcourue = positionActuelle;
+
+	// Réinitialiser le compteur
+	__HAL_TIM_SET_COUNTER(&htim2, 0);
+
+	// Ajouter la distance parcourue à la position totale
+	g_int_mot1PositionActuelle += l_int_distanceParcourue;
+
+	l_int_rpm = (l_int_distanceParcourue*30)/224;
+
+	// Afficher la distance parcourue (ou vitesse)
+	printf("\n\n\r Distance parcourue : %ld", l_int_distanceParcourue);
+	printf("\n\r Vitesse : %i RPM", l_int_rpm);
+
+}
 
 
 

@@ -65,6 +65,8 @@ void Motors_Move(int, int);
 void Motors_SetDirection(TDirection);
 void Motors_Stop(void);
 void Motors_SetSpeed(TNumMotor, uint8_t);
+void Encoders_GetData(void);
+
 
 /* USER CODE END EFP */
 
@@ -108,6 +110,10 @@ void Motors_SetSpeed(TNumMotor, uint8_t);
 #define TMS_GPIO_Port GPIOA
 #define TCK_Pin GPIO_PIN_14
 #define TCK_GPIO_Port GPIOA
+#define Mot1_Enc_A_Pin GPIO_PIN_3
+#define Mot1_Enc_A_GPIO_Port GPIOB
+#define Mot1_Enc_B_Pin GPIO_PIN_4
+#define Mot1_Enc_B_GPIO_Port GPIOB
 
 /* USER CODE BEGIN Private defines */
 
