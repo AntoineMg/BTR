@@ -54,9 +54,17 @@
 //Distance capteur US1
 uint8_t g_int_distCapteurUs1=97;
 uint8_t g_int_distRetenueUs1=104;
+
 int32_t g_int_mot1PositionActuelle;
 int32_t g_int_mot1PositionPrecedente;
 
+int g_int_rpm;
+
+char rx_buffer[10];  // Tampon pour stocker les caractères reçus
+uint8_t rx_index = 0;
+
+int g_int_LSpeed=0;
+int g_int_RSpeed=0;
 
 
 /* USER CODE END PV */
@@ -105,10 +113,12 @@ int main(void)
   MX_TIM2_Init();
   MX_TIM3_Init();
   MX_TIM6_Init();
+  MX_TIM7_Init();
   /* USER CODE BEGIN 2 */
 
   HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_3);
   HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_4);
+  HAL_TIM_Base_Start_IT(&htim7);
   HAL_TIM_Encoder_Start(&htim2, TIM_CHANNEL_ALL);
 
   Motors_SetDirection(NEUTRAL);
@@ -121,16 +131,23 @@ int main(void)
   {
 	  Motors_SetDirection(BACKWARD);
 
-	  //__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_3, 12345);
+	  HAL_UART_Receive_IT(&huart2, (uint8_t *)rx_buffer, 1);
 
-	  //Motors_Move(15,30);
+	  //Actualise la vitesse des moteurs
+	  Motors_SetSpeed(L_MOTOR, g_int_LSpeed);
+	  Motors_SetSpeed(R_MOTOR, g_int_RSpeed);
 
-	  Motors_SetSpeed(L_MOTOR, 150);
-	  Motors_SetSpeed(R_MOTOR, 150);
-
-
-	  Encoders_GetData();
+	  //Attente moteurs
 	  HAL_Delay(1000);
+	  Print_Speed();
+	  HAL_Delay(1000);
+
+
+	  //Arrete les moteurs
+	  //Motors_Stop();
+
+	  //Attente
+	  //HAL_Delay(500);
 
 	  //Motors_Stop();
 	  //HAL_Delay(1500);
@@ -155,10 +172,6 @@ int main(void)
 	  if((g_int_distCapteurUs1 <= 220) && (g_int_distCapteurUs1 >= 2)){
 		  g_int_distRetenueUs1 = g_int_distCapteurUs1;
 	  }
-
-
-
-
 
 	  //uint8_t buffer[15];
 	  //snprintf((char *)buffer, sizeof(buffer), "%d", g_int_distCapteurUs1);
@@ -270,6 +283,31 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
     }
 }
 
+
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
+{
+  /* Prevent unused argument(s) compilation warning */
+  UNUSED(huart);
+
+  // Vérifie quel uart a déclenché l'interruption
+      if (huart == &huart2) {
+
+		  char received_char = rx_buffer[0];  // Récupérer le caractère reçu
+		  //traitement caractere
+		  g_int_LSpeed = received_char;
+
+
+		  if (rx_index < 10)
+		  {
+			  rx_buffer[rx_index++] = received_char;  // Ajouter à la position actuelle dans le tampon
+		  }
+
+		  // Relancer la réception pour récupérer un autre caractère
+		  //HAL_UART_Receive_IT(&huart1, (uint8_t *)rx_buffer, 1);  // Recevoir un autre caractère
+      }
+
+}
+
 //mesures
 
 void Sensor_Read(TNumSensor x_numSensor){
@@ -367,6 +405,9 @@ void Motors_Stop(void){
 }
 
 void Motors_SetSpeed(TNumMotor x_numMotor, uint8_t x_int_speed){
+	//recoit une vitesse entre 0 et 255, puis la transforme en pourcent par rapport au max
+	x_int_speed = (x_int_speed * TIM3->ARR)/ 255;
+
 	//Controle chaque moteur individuellement
 	if(x_numMotor==L_MOTOR){
 			__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_3, x_int_speed);
@@ -378,26 +419,30 @@ void Motors_SetSpeed(TNumMotor x_numMotor, uint8_t x_int_speed){
 
 void Encoders_GetData(void){
 	int32_t l_int_distanceParcourue = 0;
-	int l_int_rpm;
 
 	// Lire la position actuelle
 	int32_t positionActuelle = __HAL_TIM_GET_COUNTER(&htim2);
 
+
 	// Calculer la distance parcourue depuis la dernière lecture
 	l_int_distanceParcourue = positionActuelle;
+
+
+	g_int_rpm = 2*(l_int_distanceParcourue*30)/224;
 
 	// Réinitialiser le compteur
 	__HAL_TIM_SET_COUNTER(&htim2, 0);
 
-	// Ajouter la distance parcourue à la position totale
-	g_int_mot1PositionActuelle += l_int_distanceParcourue;
 
-	l_int_rpm = (l_int_distanceParcourue*30)/224;
+	//Debug
+	//printf("\n\n\r Distance parcourue : %ld", l_int_distanceParcourue);
 
+
+}
+
+void Print_Speed(void){
 	// Afficher la distance parcourue (ou vitesse)
-	printf("\n\n\r Distance parcourue : %ld", l_int_distanceParcourue);
-	printf("\n\r Vitesse : %i RPM", l_int_rpm);
-
+	printf("\n\r Vitesse : %i RPM", g_int_rpm);
 }
 
 

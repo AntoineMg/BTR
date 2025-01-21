@@ -66,6 +66,7 @@ void Motors_SetDirection(TDirection);
 void Motors_Stop(void);
 void Motors_SetSpeed(TNumMotor, uint8_t);
 void Encoders_GetData(void);
+void Print_Speed(void);
 
 
 /* USER CODE END EFP */
