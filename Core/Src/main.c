@@ -18,6 +18,7 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "i2c.h"
 #include "tim.h"
 #include "usart.h"
 #include "gpio.h"
@@ -35,7 +36,15 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+
+//CONDITIONNELS
+//#define TESTMOTORS
+//#define TESTUS
+#define MMA8451Q
+
+
 #define MAX_SPEED 1
+
 
 /* USER CODE END PD */
 
@@ -48,24 +57,24 @@
 
 /* USER CODE BEGIN PV */
 
-
 //Capteurs US
 
 //Distance capteur US1
-uint8_t g_int_distCapteurUs1=97;
-uint8_t g_int_distRetenueUs1=104;
+uint8_t g_int_distCapteurUs1=0;
+uint8_t g_int_distRetenueUs1=0;
 
 int32_t g_int_mot1PositionActuelle;
 int32_t g_int_mot1PositionPrecedente;
 
-int g_int_rpm;
+uint8_t g_int_rpm;
 
 char rx_buffer[10];  // Tampon pour stocker les caractères reçus
 uint8_t rx_index = 0;
 
-int g_int_LSpeed=0;
-int g_int_RSpeed=0;
+uint8_t g_int_LSpeed=0;
+uint8_t g_int_RSpeed=0;
 
+int l_bool_commande = 0;
 
 /* USER CODE END PV */
 
@@ -114,6 +123,7 @@ int main(void)
   MX_TIM3_Init();
   MX_TIM6_Init();
   MX_TIM7_Init();
+  MX_I2C1_Init();
   /* USER CODE BEGIN 2 */
 
   HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_3);
@@ -121,49 +131,50 @@ int main(void)
   HAL_TIM_Base_Start_IT(&htim7);
   HAL_TIM_Encoder_Start(&htim2, TIM_CHANNEL_ALL);
 
+
   Motors_SetDirection(NEUTRAL);
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  //GenerePWM(50);
+
   while (1)
   {
-	  Motors_SetDirection(BACKWARD);
+#ifdef TESTMOTORS
+
 
 	  HAL_UART_Receive_IT(&huart2, (uint8_t *)rx_buffer, 1);
 
-	  //Actualise la vitesse des moteurs
-	  Motors_SetSpeed(L_MOTOR, g_int_LSpeed);
-	  Motors_SetSpeed(R_MOTOR, g_int_RSpeed);
+	  if(l_bool_commande == 1){
+		  l_bool_commande = 0;
 
-	  //Attente moteurs
-	  HAL_Delay(4000);
-	  Print_Speed();
-	  HAL_Delay(1000);
+		  Motors_SetDirection(BACKWARD);
 
+		  //Si le régime demndé est trop faible, le moteur démarre avant a haute vitesse
+		  if(g_int_LSpeed>40 && g_int_LSpeed<150 && g_int_rpm==0){
+			  Motors_SetSpeed(L_MOTOR, 220);
+			  HAL_Delay(500);
+		  }
+		  else{
+			  HAL_Delay(500);
+		  }
 
-	  //Arrete les moteurs
-	  //Motors_Stop();
+		  //Actualise la vitesse du moteur
+		  Motors_SetSpeed(L_MOTOR, g_int_LSpeed);
 
-	  //Attente
-	  //HAL_Delay(500);
+		  //Attente moteur
+		  HAL_Delay(1500);
+		  Print_Speed();
+		  Motors_Stop();
+		  //HAL_Delay(1000);
 
-	  //Motors_Stop();
-	  //HAL_Delay(1500);
-
-	  //Motors_SetDirection(NEUTRAL);
-
-	  //HAL_Delay(1500);
-
-
-
-
+	  }
 
 
-	  //Sensor_Read(L_SENSOR);
-	  //Envoi pwm trig
-#ifdef TestUS
+
+#endif
+
+#ifdef TESTUS
 	  TrigCapteurUs1();
 
 	  HAL_Delay(500);
@@ -186,8 +197,6 @@ int main(void)
 
 	  //HAL_Delay(1000);
 #endif
-
-
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -234,8 +243,9 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
-  PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_USART2;
+  PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_USART2|RCC_PERIPHCLK_I2C1;
   PeriphClkInit.Usart2ClockSelection = RCC_USART2CLKSOURCE_PCLK1;
+  PeriphClkInit.I2c1ClockSelection = RCC_I2C1CLKSOURCE_PCLK1;
   if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
   {
     Error_Handler();
@@ -295,6 +305,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 		  char received_char = rx_buffer[0];  // Récupérer le caractère reçu
 		  //traitement caractere
 		  g_int_LSpeed = received_char;
+		  l_bool_commande = 1;
 
 
 		  if (rx_index < 10)
@@ -324,14 +335,6 @@ void Sensor_Read(TNumSensor x_numSensor){
 
 
 }
-
-//Genere le signal PWM a 25kHz pour le moteur via TIM3
-//
-//void GenerePWM(int x_int_alpha){
-//	//Conversion de alpha en temps d'etat haut
-//	int l_int_tempsHaut = (x_int_alpha/100)*40;	//le 40 est en us car periode du timer (tick) est ici de 1us
-//	__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, l_int_tempsHaut);
-//}
 
 
 void NavigationUpdate(void){
@@ -431,27 +434,17 @@ void Encoders_GetData(void){
 	l_int_distanceParcourue = positionActuelle;
 
 
-	g_int_rpm = 2*(l_int_distanceParcourue*30)/224;
+	g_int_rpm = 4*(l_int_distanceParcourue*30)/224;
 
 	// Réinitialiser le compteur
 	__HAL_TIM_SET_COUNTER(&htim2, 0);
-
-
-	//Debug
-	//printf("\n\n\r Distance parcourue : %ld", l_int_distanceParcourue);
-
 
 }
 
 void Print_Speed(void){
 	// Afficher la distance parcourue (ou vitesse)
-	//printf("\n\r Vitesse : %i RPM", g_int_rpm);
-	//print("%i", g_int_rpm);
 	HAL_UART_Transmit(&huart2, &g_int_rpm, 1, HAL_MAX_DELAY);
 }
-
-
-
 
 /* USER CODE END 4 */
 

@@ -67,6 +67,12 @@ void Motors_Stop(void);
 void Motors_SetSpeed(TNumMotor, uint8_t);
 void Encoders_GetData(void);
 void Print_Speed(void);
+void MMA8451_WriteRegister(uint8_t reg, uint8_t value);
+uint8_t MMA8451_ReadRegister(uint8_t reg);
+void MMA8451_ReadRegisters(uint8_t reg, uint8_t *buffer, uint8_t length);
+void MMA8451_Init();
+void MMA8451_ReadXYZ(int16_t *x, int16_t *y, int16_t *z);
+
 
 
 /* USER CODE END EFP */
@@ -92,8 +98,6 @@ void Print_Speed(void);
 #define Mot2_Enable_GPIO_Port GPIOB
 #define CapteurUs2Trig_Pin GPIO_PIN_12
 #define CapteurUs2Trig_GPIO_Port GPIOB
-#define CapteurUs2Echo_Pin GPIO_PIN_13
-#define CapteurUs2Echo_GPIO_Port GPIOB
 #define Mot1_Ctrl1_Pin GPIO_PIN_6
 #define Mot1_Ctrl1_GPIO_Port GPIOC
 #define Mot1_Ctrl2_Pin GPIO_PIN_7

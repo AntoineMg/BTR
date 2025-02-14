@@ -85,8 +85,8 @@ void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(CapteurUs2Trig_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : PBPin PBPin PBPin */
-  GPIO_InitStruct.Pin = CapteurUs2Echo_Pin|Mot1_Enc_A_Pin|Mot1_Enc_B_Pin;
+  /*Configure GPIO pins : PB13 PBPin PBPin */
+  GPIO_InitStruct.Pin = GPIO_PIN_13|Mot1_Enc_A_Pin|Mot1_Enc_B_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
